@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <title>Incubadora de Codornizes</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; text-align: center; background-color: #f4f4f9; }
+        #tienda, #incubacao, #juego { margin: 20px auto; padding: 20px; border-radius: 12px; background: white; width: 85%; max-width: 600px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .grid { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; margin-top: 20px; }
+        .huevo { width: 35px; height: 45px; background-color: #fff1d0; border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%; 
+                 display: flex; align-items: center; justify-content: center; cursor: pointer; border: 1px solid #ccc; font-size: 18px; position: relative; }
+        .huevo.abierto { cursor: default; }
+        .codorniz { background-color: #ffcc00 !important; }
+        .muerta { background-color: #ff4444 !important; color: white; font-weight: bold; }
+        .vacio { background-color: #d1d1d1 !important; }
+        .oculto { display: none; }
+        .stats { display: flex; justify-content: space-around; font-weight: bold; font-size: 1.1em; background: #eee; padding: 10px; border-radius: 8px; }
+        #mensaje-final { background: #333; color: white; padding: 20px; border-radius: 10px; margin-top: 20px; }
+    </style>
+</head>
+<body>
+
+    <h1>🥚 Simulador Continente: Codornizes</h1>
+
+    <div id="tienda">
+        <p>Orçamento: 10€</p>
+        <button onclick="comprar()">Comprar 100 ovos no Continente</button>
+    </div>
+
+    <div id="incubacao" class="oculto">
+        <h2>🌡️ Incubação</h2>
+        <p>Temperatura: <span id="temp">20</span>°C</p>
+        <button onclick="incubar()">Aquecer a 37°C</button>
+    </div>
+
+    <div id="juego" class="oculto">
+        <div class="stats">
+            <p>Vivas: <span id="vivas" style="color: green;">0</span></p>
+            <p>Mortas: <span id="mortas" style="color: red;">0</span></p>
+            <p>Racha Azar: <span id="racha" style="color: orange;">0</span>/8</p>
+        </div>
+        <div id="gridHuevos" class="grid"></div>
+        <div id="mensaje-final" class="oculto">
+            <h2>⚠️ GAME OVER</h2>
+            <p>A empresa foi à falência. Tente novamente em fevereiro.</p>
+        </div>
+    </div>
+
+    <audio id="audioBurro">
+        <source src="https://www.myinstants.com/media/sounds/burro-rebuznando.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        let ovosRestantes = 100;
+        let vivas = 0;
+        let mortas = 0;
+        let rachaFallos = 0;
+        let elementosVivos = []; // Para saber qué huevos tienen codornices vivas
+
+        function comprar() {
+            document.getElementById('tienda').classList.add('oculto');
+            document.getElementById('incubacao').classList.remove('oculto');
+        }
+
+        function incubar() {
+            let t = 20;
+            let intervalo = setInterval(() => {
+                t++;
+                document.getElementById('temp').innerText = t;
+                if (t >= 37) {
+                    clearInterval(intervalo);
+                    iniciarJuego();
+                }
+            }, 30);
+        }
+
+        function iniciarJuego() {
+            document.getElementById('incubacao').classList.add('oculto');
+            document.getElementById('juego').classList.remove('oculto');
+            const grid = document.getElementById('gridHuevos');
+
+            for (let i = 0; i < 100; i++) {
+                let div = document.createElement('div');
+                div.className = 'huevo';
+                let tieneCodorniz = Math.random() < 0.15;
+                
+                div.onclick = function() {
+                    if (this.classList.contains('abierto') || ovosRestantes === 0) return;
+                    
+                    this.classList.add('abierto');
+                    ovosRestantes--;
+
+                    if (tieneCodorniz) {
+                        this.innerText = '🐤';
+                        this.classList.add('codorniz');
+                        vivas++;
+                        rachaFallos = 0; // Se rompe la racha de mala suerte
+                        elementosVivos.push(this); // Guardamos la referencia para poder matarla luego
+                    } else {
+                        this.classList.add('vacio');
+                        document.getElementById('audioBurro').currentTime = 0;
+                        document.getElementById('audioBurro').play();
+                        
+                        rachaFallos++;
+                        
+                        if (rachaFallos === 8) {
+                            rachaFallos = 0;
+                            if (elementosVivos.length > 0) {
+                                // Matar a la última codorniz encontrada
+                                let pobreCodorniz = elementosVivos.pop();
+                                pobreCodorniz.innerText = '❌';
+                                pobreCodorniz.classList.remove('codorniz');
+                                pobreCodorniz.classList.add('muerta');
+                                vivas--;
+                                mortas++;
+                                
+                                // Alerta de funeral y pago
+                                setTimeout(() => {
+                                    alert("🕯️ FUNERAL: Uma codorniz morreu devido à má sorte.");
+                                    prompt("Por favor, deposite 2.5€ para o ramo de flores:");
+                                }, 100);
+                            }
+                        }
+                    }
+
+                    actualizarMarcador();
+
+                    if (ovosRestantes === 0) {
+                        document.getElementById('mensaje-final').classList.remove('oculto');
+                    }
+                };
+                grid.appendChild(div);
+            }
+        }
+
+        function actualizarMarcador() {
+            document.getElementById('vivas').innerText = vivas;
+            document.getElementById('mortas').innerText = mortas;
+            document.getElementById('racha').innerText = rachaFallos;
+        }
+    </script>
+</body>
+</html>
